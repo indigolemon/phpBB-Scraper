@@ -141,7 +141,7 @@ while ($topic <= $end_topic) {
 				// close xml tags
 				$topic_content .= "</thread>\n";
 				// We have dropped off the end of the topic, save what we have
-				$file_name = "PreludeUK/topic_" . $topic . "_" . preg_replace("/[^A-Za-z0-9]/","",strtolower(trim(substr($current_title,0,30)))) . ".txt";
+				$file_name = $foldername . "/topic_" . str_pad($topic,6,"0",STR_PAD_LEFT) . "_" . preg_replace("/[^A-Za-z0-9_]/","",strtolower(trim(substr(str_replace(" ", "_", $current_title),0,30)))) . ".xml";
 				$fh = fopen($file_name, 'w') or die("ERROR: Can't open file: " . $file_name);
 				fwrite($fh, $topic_content);
 				fclose($fh);
