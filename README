@@ -1,0 +1,29 @@
+*******************************************************************
+*******************************************************************
+**                                                               **
+** phpBB Scraper Script                                          **
+** Version 1.0                                                   **
+** 10th March 2010                                               **
+**                                                               **
+*******************************************************************
+** Features:                                                     **
+** - Logs in to the forum, so no unaccessable threads            **
+** - Iterates through all threads within a given range           **
+**   - Will skip missing/deleted threads automatically           **
+** - Generates an XML file for each thread, including:           **
+**   - Thread Topic                                              **
+**   - Post Author                                               **
+**   - Post Date/Time                                            **
+**   - Details of any externally linked images                   **
+**   - Details of any quoted posts, including content            **
+**                                                               **
+*******************************************************************
+**                                                               **
+** (c) 2010 Graham Thomson (graham.thomson@gmail.com)            **
+** Released under the GNU General Public License (GPL) version 3 **
+** - See COPYING                                                 **
+**                                                               **
+** Thanks to:                                                    **
+** - JayJay (PreludeUK) for testing, suggestions                 **
+**                                                               **
+*******************************************************************
