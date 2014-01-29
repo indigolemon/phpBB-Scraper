@@ -84,6 +84,9 @@ if (curl_errno($ch)){
 $topic = $start_topic;
 $page = 1;
 $topic_content = "";
+$topic_found = false;
+$first_post = true;
+$seen_postbody = false;
 
 // topic check, stops us printing the title each time round the loop
 $topic_check = 0;
@@ -183,20 +186,32 @@ while ($topic <= $end_topic) {
 			}
 			// Get Post Owner
 			if($node->nodeName == 'span' && $node->getAttribute('class') == 'name') {
+				if(!$first_post) {
+					// Close post
+					$topic_content .= "\t\t</message>\n";
+					$topic_content .= "\t</post>\n";
+				}
+				// Start new post
+				$seen_postbody = false;
 				$topic_content .= "\t<post>\n";
 				$topic_content .= "\t\t<author>" . htmlentities($node->nodeValue, ENT_COMPAT, "UTF-8") . "</author>\n";
+				// first post is grabbed
+				$first_post = false;
 			}
 			// Get Post time/date
 			if($node->nodeName == 'span' && $node->getAttribute('class') == 'postdetails' && (strstr($node->nodeValue, "Posted:") !== false)) {
 				// We need to strip the content down to grab just the time/date
-				$stripstring = trim(substr($node->nodeValue,8,27));
-				$stripstring = htmlentities($stripstring);
+				$stripstring = trim(substr($node->nodeValue,8,25));
+				$stripstring = htmlentities(utf8_encode($stripstring));
 				$stripstring = str_replace(array("&Acirc;","&nbsp;"), "", $stripstring);
 				$topic_content .= "\t\t<time>" . $stripstring . "</time>\n";
 				$topic_content .= "\t\t<message>\n";
 			}
 			// Get Post Content
-			if($node->nodeName == 'div' && $node->getAttribute('id') == 'word2click') {
+			if($node->nodeName == 'span' && $node->getAttribute('class') == 'postbody' && !$seen_postbody) {
+echo $node->nodeValue . "\n* * *\n\n";
+				// We've found the post body!
+				$seen_postbody = true;
 				// Check if we have extra data in the post
 				if ($node->hasChildNodes()) {
 					$inodes = $node->childNodes;
@@ -205,22 +220,34 @@ while ($topic <= $end_topic) {
 						if($inode->nodeName == 'img' && strstr($inode->getAttribute('src'), "http") !== false) {
 							$topic_content .= "\t\t\t<linkedimage>" . htmlentities($inode->getAttribute('src'), ENT_COMPAT, "UTF-8") . "</linkedimage>\n";
 						}
-						// If we have a table, it should contain a quote
-						if($inode->nodeName == 'table' && $inode->hasChildNodes()) {
-							// recurse to grab quotes
-							$topic_content .= print_quotes($inode, 1);
-							// remove recursed content
-							remove_children($inode);
+						if($inode->nodeName == 'div') {
+							$iinodes = $inode->childNodes;
+							foreach($iinodes as $iinode) {
+								// If we have a table, it should contain a quote
+								if($iinode->nodeName == 'table' && $iinode->hasChildNodes()) {
+									// recurse to grab quotes
+									$topic_content .= print_quotes($iinode, 1);
+									// remove recursed content
+									remove_children($iinode);
+								}
+							}
 						}
 					}
 				}
+				// Remove signature if it exists
+				$message_body = htmlentities($node->nodeValue, ENT_COMPAT, "UTF-8");
+				if(strstr($message_body, "_________________") !== false) {
+					$message_body = substr($message_body,0,strpos($message_body,"_________________"));
+				}
+
 				// Remove any children and print main message
-				$topic_content .= preg_replace('/(\r\n|\r|\n)/s',"\n",htmlentities($node->nodeValue, ENT_COMPAT, "UTF-8")) . "\n";
-				// Close content
-				$topic_content .= "\t\t</message>\n";
-				$topic_content .= "\t</post>\n";
+				$topic_content .= preg_replace('/(\r\n|\r|\n)/s',"\n",$message_body) . "\n";
 			}
 		}
+		
+		// Close last post
+		$topic_content .= "\t\t</message>\n";
+		$topic_content .= "\t</post>\n";
 
 		// Update page count and back round the loop
 		$page++;
@@ -236,6 +263,8 @@ curl_close($ch);
 
 // This recurses and prints all quotes
 function print_quotes($node, $depth) {
+	// Start with empty topic string
+	$topic_content = "";
 	// Increase level as we go deeper
 	$depth++;
 	// default tab level
