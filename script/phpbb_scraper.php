@@ -41,6 +41,9 @@ $projectname    = "preludeuk";
 // Select the topics you wish to grab
 $start_topic    = 1;
 $end_topic      = 10000;
+// optionally add a delay (in milliseconds) between requests to 
+// prevent problems if a site throttles you
+$delay          = 1000;
 
 // ************************************************************
 // ************************************************************
@@ -252,6 +255,11 @@ echo $node->nodeValue . "\n* * *\n\n";
 		// Update page count and back round the loop
 		$page++;
 	}
+
+    if ($delay > 0) {
+        usleep($delay * 1000);
+    }
+
 }
 
 // Close cURL session
