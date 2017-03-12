@@ -41,6 +41,11 @@ $projectname    = "preludeuk";
 // Select the topics you wish to grab
 $start_topic    = 1;
 $end_topic      = 10000;
+// optionally add a delay (in milliseconds) between requests to 
+// prevent problems if a site throttles you
+$delay          = 0;
+// verbose messages during run?
+$verbose        = false;
 
 // ************************************************************
 // ************************************************************
@@ -115,12 +120,15 @@ while ($topic <= $end_topic) {
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
 	// grab the reply
+    log_print("grabbing url $url_to_try");
 	$result = curl_exec($ch);
+
 
 	// Check if we have an error message meaning no topic found
 	if (strstr($result, "No posts exist for this topic") !== false) {
 		// If we have something worth writing
 		if (strlen($topic_content) > 0) {
+            log_print("writing content for topic: $current_title");
 			// close the XML tags
 			$topic_content .= "</thread>\n";
 			// We have dropped off the end of the topic, save what we have
@@ -141,6 +149,7 @@ while ($topic <= $end_topic) {
 		if (strstr($result, "The topic or post you requested does not exist") !== false) {
 			// If we have something worth writing
 			if (strlen($topic_content) > 0) {
+                log_print("writing content for topic: $current_title");
 				// close xml tags
 				$topic_content .= "</thread>\n";
 				// We have dropped off the end of the topic, save what we have
@@ -157,9 +166,11 @@ while ($topic <= $end_topic) {
 		} else {
 			if ($topic_check != $topic) {
 				// New topic, so we need to change this to match
+                log_print("New topic: $topic");
 				$topic_check = $topic;
 			}
 			// If we are here, we *do* want to harvest data
+            log_print("Good go to, ready to harvest data");
 			$good_to_go = true;	
 		}
 	}
@@ -174,6 +185,7 @@ while ($topic <= $end_topic) {
 		// grab page 'nodes' (tags basically)
 		$nodes = $dom->getElementsByTagName('*');
 		// now loop through the tags and grab name and post content
+        log_print("parsing data from posts");
 		foreach($nodes as $node) {
 			//Get Topic
 			if($node->nodeName == 'a' && $node->getAttribute('class') == 'maintitle' && !$topic_found) {
@@ -209,7 +221,7 @@ while ($topic <= $end_topic) {
 			}
 			// Get Post Content
 			if($node->nodeName == 'span' && $node->getAttribute('class') == 'postbody' && !$seen_postbody) {
-echo $node->nodeValue . "\n* * *\n\n";
+                log_print("Processing post: " . $node->nodeValue);
 				// We've found the post body!
 				$seen_postbody = true;
 				// Check if we have extra data in the post
@@ -252,6 +264,11 @@ echo $node->nodeValue . "\n* * *\n\n";
 		// Update page count and back round the loop
 		$page++;
 	}
+
+    if ($delay > 0) {
+        usleep($delay * 1000);
+    }
+
 }
 
 // Close cURL session
@@ -330,5 +347,13 @@ function remove_children(&$node) {
 		}
 		$node->removeChild($node->firstChild);
 	}
+}
+
+function log_print($log_text) {
+    global $verbose;
+    if ($verbose) {
+        $timestamp = date('Y-m-d H:i:s');
+        echo "[$timestamp] $log_text\n";
+    }
 }
 ?>
